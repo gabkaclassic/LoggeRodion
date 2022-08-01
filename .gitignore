@@ -2,3 +2,10 @@
 *.txt
 *.idea
 *.jar
+*.json
+*.xml
+*.properties
+Test.java
+logs
+RTF
+test
