@@ -9,6 +9,7 @@ import com.company.logger.purposes.strategies.DefaultStrategy;
 import com.company.logger.purposes.strategies.LogStrategy;
 import com.company.logger.purposes.strategies.SizeStrategy;
 import com.company.logger.purposes.strategies.TimeStrategy;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
@@ -16,100 +17,120 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class LoggeRodionParser extends LoggerParser<LoggeRodion> {
+public final class LoggeRodionParser extends LoggerParser<LoggeRodion> {
     
-    protected LoggeRodion loggerFromJson(BufferedReader reader) throws IOException {
     
-        var mapper = new ObjectMapper();
+    private static final TypeReference<HashMap<String, LoggeRodion>> typeReference;
+    private static final XmlMapper xmlMapper;
+    private static final ObjectMapper objectMapper;
     
-        return mapper.readValue(reader, LoggeRodion.class);
+    static {
+        xmlMapper = new XmlMapper();
+        objectMapper = new ObjectMapper();
+        typeReference = new TypeReference<>() {};
     }
     
-    protected LoggeRodion loggerFromJson(String path) throws IOException {
+    public Map<String, LoggeRodion> loggersFromJson(BufferedReader reader) throws IOException {
         
-        var mapper = new ObjectMapper();
-        
-        return mapper.readValue(new File(path), LoggeRodion.class);
+        return objectMapper.readValue(reader, typeReference);
     }
     
-    protected LoggeRodion loggerFromXml(BufferedReader reader) throws IOException {
+    public Map<String, LoggeRodion> loggersFromJson(String path) throws IOException {
         
-        var mapper = new XmlMapper();
-    
-        return mapper.readValue(reader, LoggeRodion.class);
+        return objectMapper.readValue(new File(path), typeReference);
     }
     
-    protected LoggeRodion loggerFromXml(String path) throws IOException {
+    public Map<String, LoggeRodion> loggersFromXml(BufferedReader reader) throws IOException {
         
-        var mapper = new XmlMapper();
-        
-        return mapper.readValue(new File(path), LoggeRodion.class);
+        return xmlMapper.readValue(reader, typeReference);
     }
     
-    protected LoggeRodion loggerFromProperties(BufferedReader reader) throws IOException {
+    public Map<String, LoggeRodion> loggersFromXml(String path) throws IOException {
+        
+        return xmlMapper.readValue(new File(path), typeReference);
+    }
+    
+    public Map<String, LoggeRodion> loggersFromProperties(BufferedReader reader) throws IOException {
         
         var props = new Properties();
-        LoggeRodion logger;
         props.load(reader);
-    
-        var purposeList = new ArrayList<>();
-        purposeList.add(null);
-        purposeList.add(null);
+        var config = props.keySet().stream().collect(Collectors.toMap(Object::toString, k->props.get(k).toString()));
+        var loggers = config.keySet().stream().map(s -> s.substring(0, s.indexOf("."))).collect(Collectors.toMap(s->s, LoggeRodion::new));
         
-        if(props.containsKey("console.level")) {
-            PurposeLevel level = PurposeLevel.valueOf((String) props.get("console.level"));
-            purposeList.set(0, new ConsolePurpose(level));
+        for(var name: loggers.keySet()) {
+    
+            if (config.containsKey(name + ".putPoint"))
+                loggers.get(name).setPutPoint(config.get(name + ".putPoint"));
+            loggers.get(name).setPurposes(getPurposes(name, config));
         }
-        if(props.containsKey("file.level")) {
-            PurposeLevel level = PurposeLevel.valueOf((String) props.get("file.level"));
-            String strategyType = (String)props.get("file.strategy");
-            String path = (String)props.get("file.path");
-            boolean delete = !props.containsKey("file.strategy.delete")
-                    || Boolean.parseBoolean((String) props.get("file.strategy.delete"));
+        
+        return loggers;
+    }
+    
+    private Set<Purpose> getPurposes(String name, Map<String, String> config) throws IOException {
+    
+    
+        var file = (config.get(name + ".type").contains("FILE")) ?
+                new FilePurpose() : null;
+        var console = (config.get(name + ".type").toUpperCase().contains("CONSOLE"))
+                ? new ConsolePurpose() : null;
+    
+        if(file != null) {
+    
+            LogStrategy strategy;
+            strategy = getStrategy(name, config);
+            var level = config.containsKey("file.level") ?
+                    PurposeLevel.valueOf(config.get("file.level")) : PurposeLevel.WARN;
             
-            LogStrategy strategy = switch (strategyType) {
-                
-                case "SIZE" -> {
-    
-                    String condition = (String)props.get("file.strategy.condition");
-                    
-                    yield new SizeStrategy(path, delete, condition);
-                }
-                case "TIME" -> {
-    
-                    Map<Integer, Integer> time = Map.of(
-                            Calendar.SECOND, props.containsKey("file.strategy.seconds") ?
-                                    Integer.parseInt((String)props.get("file.strategy.seconds")) : 0,
-                            Calendar.MINUTE, props.containsKey("file.strategy.minutes") ?
-                                    Integer.parseInt((String)props.get("file.strategy.minutes")) : 0,
-                            Calendar.HOUR, props.containsKey("file.strategy.hours") ?
-                                    Integer.parseInt((String)props.get("file.strategy.hours")) : 0,
-                            Calendar.DAY_OF_MONTH, props.containsKey("file.strategy.days") ?
-                                    Integer.parseInt((String)props.get("file.strategy.days")) : 0,
-                            Calendar.MONTH, props.containsKey("file.strategy.months") ?
-                                    Integer.parseInt((String)props.get("file.strategy.months")) : 0
-                    );
-    
-                    yield new TimeStrategy(path, delete, time);
-                }
-                default -> new DefaultStrategy(path);
-            };
-            
-            var file = new FilePurpose(level, strategy);
-            purposeList.set(1, file);
+            file.setStrategy(strategy);
+            file.setLevel(level);
         }
-        Purpose[] purposes = purposeList.stream().filter(Objects::nonNull).toArray(Purpose[]::new);
+        if(console != null) {
+            
+            var level = config.containsKey("console.level") ?
+                    PurposeLevel.valueOf(config.get("console.level")) : PurposeLevel.DEBUG;
+            console.setLevel(level);
+        }
+    
+        return Stream.of(console, file).filter(Objects::nonNull).collect(Collectors.toSet());
+    }
+    
+    private LogStrategy getStrategy(String name, Map<String, String> config) {
+    
+        String strategyType = config.get(name + ".file.strategy");
+        String path = config.get("file.path");
+        boolean delete = !config.containsKey("file.strategy.delete")
+                || Boolean.parseBoolean(config.get("file.strategy.delete"));
         
-        logger = new LoggeRodion(
-                Boolean.parseBoolean((String) props.get("color")),
-                Boolean.parseBoolean((String) props.get("secret")),
-                (String)props.get("datePattern"),
-                Boolean.parseBoolean((String) props.get("concurrent")),
-                Boolean.parseBoolean((String) props.get("daemon")),
-                purposes
-        );
+        return switch (strategyType) {
         
-        return logger;
+            case "SIZE" -> {
+            
+                String condition = config.get("file.strategy.condition");
+            
+                yield new SizeStrategy(path, delete, condition);
+            }
+            case "TIME" -> {
+            
+                Map<Integer, Integer> time = Map.of(
+                        Calendar.SECOND, config.containsKey("file.strategy.seconds") ?
+                                Integer.parseInt(config.get("file.strategy.seconds")) : 0,
+                        Calendar.MINUTE, config.containsKey("file.strategy.minutes") ?
+                                Integer.parseInt(config.get("file.strategy.minutes")) : 0,
+                        Calendar.HOUR, config.containsKey("file.strategy.hours") ?
+                                Integer.parseInt(config.get("file.strategy.hours")) : 0,
+                        Calendar.DAY_OF_MONTH, config.containsKey("file.strategy.days") ?
+                                Integer.parseInt(config.get("file.strategy.days")) : 0,
+                        Calendar.MONTH, config.containsKey("file.strategy.months") ?
+                                Integer.parseInt(config.get("file.strategy.months")) : 0
+                );
+            
+                yield new TimeStrategy(path, delete, time);
+            }
+            default -> new DefaultStrategy(path);
+        };
     }
 }

@@ -5,9 +5,10 @@ import com.company.logger.purposes.Purpose;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 
 public interface LoggerFactory<T extends Logger> {
-    
+     
      T defaultLogger();
     
      T logger(Purpose... purposes);
@@ -16,7 +17,9 @@ public interface LoggerFactory<T extends Logger> {
     
      T logger(Purpose purposes);
     
-     T loggerFromFile(File source) throws IOException;
-    
-     T loggerFromFile(String path) throws IOException;
+     Map<String, T> config(File source) throws IOException;
+     
+     Map<String, T> config(String path) throws IOException;
+     
+     T getLogger(String name);
 }

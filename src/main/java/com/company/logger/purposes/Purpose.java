@@ -6,7 +6,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.Writer;
 
 @JsonTypeInfo(use = Id.NAME)
 @JsonSerialize
@@ -30,6 +31,11 @@ public abstract class Purpose {
         
         type = PurposeType.CONSOLE;
         setLevel(level);
+    }
+    
+    public static Purpose defaultPurpose() throws IOException {
+        
+        return new ConsolePurpose();
     }
     
     public synchronized void write(String text) throws IOException {
@@ -60,7 +66,7 @@ public abstract class Purpose {
         writer.close();
     }
     
-    protected void setLevel(PurposeLevel level) {
+    public void setLevel(PurposeLevel level) {
         
         this.level = level;
     }

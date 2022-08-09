@@ -49,9 +49,10 @@ public final class FilePurpose extends Purpose {
     
     public void setWriter(String path) throws IOException {
         
-        if(path != null
-                && path.substring(path.lastIndexOf(".") + 1).equals("rtf"))
+        if(path != null) {
             writer = new FileWriter(path, true);
+            strategy.setDirectory(path);
+        }
         else
             writer = new FileWriter(strategy.getPath(), true);
     }

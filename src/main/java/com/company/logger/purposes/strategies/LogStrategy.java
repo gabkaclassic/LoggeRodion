@@ -6,7 +6,7 @@ import java.nio.file.FileSystems;
 public abstract class LogStrategy {
     
     protected final String DEFAULT_PREFIX = "log";
-    protected final String EXTENSION = ".rtf";
+    protected final String EXTENSION = ".log";
     protected final String SEPARATOR = FileSystems.getDefault().getSeparator();
     
     protected String directory;
@@ -28,7 +28,7 @@ public abstract class LogStrategy {
     
     public abstract String getPath() throws IOException;
     
-    protected void setDirectory(String path) {
+    public void setDirectory(String path) {
         
         this.directory = (path == null || !path.contains(SEPARATOR)) ?
                 "" : path.substring(0, path.lastIndexOf(SEPARATOR));

@@ -7,10 +7,17 @@ import com.company.logger.purposes.Purpose;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
 
 public final class LoggeRodionFactory implements LoggerFactory<LoggeRodion> {
     
     private LoggeRodionParser parser;
+    private Map<String, LoggeRodion> loggers;
+    
+    public LoggeRodionFactory() {
+        
+        parser = new LoggeRodionParser();
+    }
     
     public LoggeRodionFactory(LoggeRodionParser parser) {
         
@@ -57,14 +64,19 @@ public final class LoggeRodionFactory implements LoggerFactory<LoggeRodion> {
         return new LoggeRodion(purposes);
     }
     
-    public LoggeRodion loggerFromFile(File source) throws IOException {
+    public Map<String, LoggeRodion> config(File source) throws IOException {
         
-        return parser.setup(source);
+        return loggers = parser.config(source);
     }
     
-    public LoggeRodion loggerFromFile(String path) throws IOException {
+    public Map<String, LoggeRodion> config(String path) throws IOException {
         
-        return loggerFromFile(new File(path));
+        return loggers = parser.config(path);
+    }
+    
+    public LoggeRodion getLogger(String name) {
+        
+        return loggers.get(name);
     }
     
 }

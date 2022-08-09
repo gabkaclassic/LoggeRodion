@@ -1,9 +1,9 @@
 package com.company.logger.purposes;
 
 public enum PurposeLevel {
-    TRACE(0, "|--TRACE--|"),
-    INFO(1, "|---INFO--|"),
-    DEBUG(2, "|--DEBUG--|"),
+    DEBUG(0, "|--DEBUG--|"),
+    TRACE(1, "|--TRACE--|"),
+    INFO(2, "|---INFO--|"),
     WARN(3, "|---WARN--|"),
     ERROR(4, "|--ERROR--|"),
     FATAL(5, "|--FATAL--|");
