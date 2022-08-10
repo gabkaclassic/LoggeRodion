@@ -23,7 +23,7 @@ public abstract class Logger {
     @JsonProperty
     protected DateFormat dateFormat;
     @JsonProperty
-    protected String format = "{date}|{log}";
+    protected String format = DEFAULT_FORMAT;
     @JsonProperty
     protected boolean daemon;
     @JsonProperty
