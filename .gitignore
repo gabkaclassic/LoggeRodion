@@ -1,12 +1,13 @@
 *.iml
 *.txt
 *.idea
-*.jar
 *.json
 *.xml
+*.jar
 *.properties
 Test.java
 logs
 RTF
 test
+*.MF
 *.csv
