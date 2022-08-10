@@ -17,7 +17,7 @@ public class LoggeRodion extends Logger {
     
     public LoggeRodion() {
         
-        super(false, true, DEFAULT_DATE_PATTERN, false, false);
+        super(false, true, DEFAULT_DATE_FORMAT, false, false);
     }
     
     public LoggeRodion(boolean color, boolean secret, String datePattern, boolean concurrent, boolean daemon, Purpose... purposes) {
@@ -42,7 +42,7 @@ public class LoggeRodion extends Logger {
     
     public LoggeRodion(Purpose... purposes) {
         
-        super(false, false, DEFAULT_DATE_PATTERN, false, false, purposes);
+        super(false, false, DEFAULT_DATE_FORMAT, false, false, purposes);
     }
     
     public void trace(String log, Object... args) {
@@ -84,7 +84,7 @@ public class LoggeRodion extends Logger {
         if(participants.isEmpty())
             return;
         
-        log = prepareText(log, args);
+        log = prepareText(log, args, level);
         var logs = Dyer.coloring(log, colorMap, color);
         
         if(concurrent) {
@@ -119,16 +119,15 @@ public class LoggeRodion extends Logger {
         service.shutdown();
     }
     
-    private String prepareText(String log, Object[] args) {
+    private String prepareText(String log, Object[] args, PurposeLevel level) {
+        
+        log = formattingText(log, level);
         
         for (var arg : args)
             log = log.replaceFirst(putPoint, arg.toString());
     
         if(secret)
             log = hideSecrets(log);
-        log = dateFormat.format(Calendar.getInstance().getTime()) + log;
-        
-        log = log + "\n";
     
         return log;
     }

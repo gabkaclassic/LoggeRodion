@@ -21,10 +21,10 @@ public final class Dyer {
     
        if(color)
             return colorMap.keySet().stream().filter(k -> colorMap.get(k) != null)
-                    .collect(Collectors.toMap(l -> l, l -> paint(l.getView() + log, colorMap.get(l)).text()));
+                    .collect(Collectors.toMap(l -> l, l -> paint(log, colorMap.get(l)).text()));
        
        return Arrays.stream(PurposeLevel.values())
-               .collect(Collectors.toMap(l -> l, l -> l.getView() + log));
+               .collect(Collectors.toMap(l -> l, l -> log));
     }
     
     public static Dyer paint(String text, Effect... effects) {

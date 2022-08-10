@@ -12,12 +12,18 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @JsonSerialize
 public abstract class Logger {
     
-    protected static final String DEFAULT_DATE_PATTERN = "ss:mm:HH|dd-MM-yy|";
+    protected static final String DEFAULT_DATE_FORMAT = "ss:mm:HH|dd-MM-yy";
+    protected static final String DEFAULT_FORMAT = "{date}|{log}";
+    
+    @JsonProperty
     protected DateFormat dateFormat;
+    @JsonProperty
+    protected String format = "{date}|{log}";
     @JsonProperty
     protected boolean daemon;
     @JsonProperty
@@ -48,13 +54,13 @@ public abstract class Logger {
     
     Logger() {
         
-        this(false, false, DEFAULT_DATE_PATTERN, false, false);
+        this(false, false, DEFAULT_DATE_FORMAT, false, false);
     }
     
     Logger(boolean color, boolean secret, String datePattern, boolean concurrent, boolean daemon, Purpose... purposes) {
         
         setSecret(secret);
-        setDatePattern(datePattern);
+        setDateFormat(datePattern);
         setConcurrent(concurrent);
         setDaemon(daemon);
         setColor(color);
@@ -72,7 +78,7 @@ public abstract class Logger {
     
     Logger(Purpose... purposes) {
         
-        this(false, false, DEFAULT_DATE_PATTERN, false, false, purposes);
+        this(false, false, DEFAULT_DATE_FORMAT, false, false, purposes);
     }
     
     public abstract void trace(String log, Object ... args);
@@ -86,6 +92,30 @@ public abstract class Logger {
     public abstract void error(String log, Object ... args);
     
     public abstract void fatal(String log, Object ... args);
+    
+    protected String formattingText(String text, PurposeLevel level) {
+        
+        return format.replaceAll("\\{date}", getTimeView())
+                .replaceAll("\\{log}", text)
+                .replaceAll("\\{level}", level.getView())
+                .replaceAll(
+                        "\\{stack}",
+                        Arrays.stream(Thread.currentThread().getStackTrace())
+                                .map(Object::toString)
+                                .collect(Collectors.joining("\n"))
+                );
+    }
+    
+    
+    public String getFormat() {
+        
+        return format;
+    }
+    
+    public void setFormat(String format) {
+        
+        this.format = format;
+    }
     
     public abstract void setupColorMap(Map<PurposeLevel, Effect> settings);
     
@@ -115,15 +145,18 @@ public abstract class Logger {
         this.secret = secret;
     }
     
-    public void setDatePattern(String datePattern) {
+    public void setDateFormat(String datePattern) {
     
-        this.datePattern = Objects.requireNonNullElse(datePattern, DEFAULT_DATE_PATTERN);
+        this.datePattern = Objects.requireNonNullElse(datePattern, DEFAULT_DATE_FORMAT);
         dateFormat = new SimpleDateFormat(this.datePattern);
     }
     
     public void setDateFormat(DateFormat dateFormat) {
         
-        this.dateFormat = dateFormat;
+        if(this.dateFormat != null)
+            this.dateFormat = dateFormat;
+        else 
+            throw new NullPointerException();
     }
     
     public void setColorMap(Map<PurposeLevel, Effect> colorMap) {
